@@ -8,25 +8,40 @@ import {
   Snackbar,
   Tabs,
   Tab,
-  Typography
+  Typography,
+  Tooltip
 } from "@mui/material";
+import InfoIcon from "@mui/icons-material/Info";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import axios from "axios";
 
 export default function ReadmeGenerator() {
   const [tabIndex, setTabIndex] = useState(0);
   const [inputValue, setInputValue] = useState("");
+  const [includePatterns, setIncludePatterns] = useState("");
+  const [excludePatterns, setExcludePatterns] = useState("");
   const [readmeContent, setReadmeContent] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
+
+  const defaultIncludePatterns = "Include the files which you want to make part of readMe file. Example:  src/main/java/com/ai/readme_generator/controllers/**,*.xml, **/*.xml, **/*.yaml, **/*.yml (Comma-separated)";
+  const defaultExcludePatterns = "Exclude the files which you do not want to make part of readMe file. If nothing specified, default will be considered. Example: node_modules/, target/, *.log (Comma-separated)";
 
   const handleGenerateReadme = async () => {
     if (!inputValue) return;
     setIsGenerating(true);
     try {
-      const endpoint = tabIndex === 0 ? "http://localhost:8080/readme?localPath=" : "http://localhost:8080/readme/github?repoUrl=";
-      const encodedInput = encodeURIComponent(inputValue);
-      const response = await axios.post(`${endpoint}${encodedInput}`);
+      const endpoint = tabIndex === 0 ? "http://localhost:8080/local" : "http://localhost:8080/readme/github";
+      const payload = {
+        pathOrRepoUrl: inputValue,
+        readConfig: {
+          includePatterns: includePatterns.split(",").map(p => p.trim()),
+          excludePatterns: excludePatterns.split(",").map(p => p.trim()),
+        }
+      };
+      const response = await axios.post(endpoint, payload, {
+        headers: { "Content-Type": "application/json" },
+      });
       setReadmeContent(response.data);
     } catch (error) {
       console.error("Error generating README:", error.message || error.toString());
@@ -59,6 +74,36 @@ export default function ReadmeGenerator() {
             onChange={(e) => setInputValue(e.target.value)}
             margin="normal"
           />
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <TextField
+              fullWidth
+              label="Include Patterns (Comma-separated)"
+              variant="outlined"
+              margin="normal"
+              value={includePatterns}
+              onChange={(e) => setIncludePatterns(e.target.value)}
+            />
+            <Tooltip title={defaultIncludePatterns} arrow>
+              <IconButton>
+                <InfoIcon />
+              </IconButton>
+            </Tooltip>
+          </div>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <TextField
+              fullWidth
+              label="Exclude Patterns (Comma-separated)"
+              variant="outlined"
+              margin="normal"
+              value={excludePatterns}
+              onChange={(e) => setExcludePatterns(e.target.value)}
+            />
+            <Tooltip title={defaultExcludePatterns} arrow>
+              <IconButton>
+                <InfoIcon />
+              </IconButton>
+            </Tooltip>
+          </div>
           <Button
             variant="contained"
             color="primary"
