@@ -1,20 +1,32 @@
 import React, { useState } from "react";
-import { TextField, Button, Card, CardContent, IconButton, Snackbar, Alert } from "@mui/material";
+import {
+  TextField,
+  Button,
+  Card,
+  CardContent,
+  IconButton,
+  Snackbar,
+  Tabs,
+  Tab,
+  Typography
+} from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import axios from "axios";
 
 export default function ReadmeGenerator() {
-  const [directory, setDirectory] = useState("");
+  const [tabIndex, setTabIndex] = useState(0);
+  const [inputValue, setInputValue] = useState("");
   const [readmeContent, setReadmeContent] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
 
   const handleGenerateReadme = async () => {
-    if (!directory) return;
+    if (!inputValue) return;
     setIsGenerating(true);
     try {
-      const encodedPath = encodeURIComponent(directory);
-      const response = await axios.post(`http://localhost:8080/readme?localPath=${encodedPath}`);
+      const endpoint = tabIndex === 0 ? "http://localhost:8080/readme?localPath=" : "http://localhost:8080/readme/github?repoUrl=";
+      const encodedInput = encodeURIComponent(inputValue);
+      const response = await axios.post(`${endpoint}${encodedInput}`);
       setReadmeContent(response.data);
     } catch (error) {
       console.error("Error generating README:", error.message || error.toString());
@@ -30,24 +42,29 @@ export default function ReadmeGenerator() {
 
   return (
     <div style={{ maxWidth: "600px", margin: "auto", padding: "20px", textAlign: "center" }}>
-      <h2 style={{ marginBottom: "20px", color: "#1976d2" }}>README Generator</h2>
-      <Card style={{ padding: "20px", boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)" }}>
+      <Typography variant="h4" gutterBottom>
+        Readme Generator
+      </Typography>
+      <Card>
         <CardContent>
+          <Tabs value={tabIndex} onChange={(e, newIndex) => setTabIndex(newIndex)} centered>
+            <Tab label="Local Path" />
+            <Tab label="GitHub Repo" />
+          </Tabs>
           <TextField
             fullWidth
-            label="Enter system directory path"
+            label={tabIndex === 0 ? "Enter system directory path" : "Enter GitHub repo link"}
             variant="outlined"
-            value={directory}
-            onChange={(e) => setDirectory(e.target.value)}
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
             margin="normal"
           />
           <Button
             variant="contained"
             color="primary"
             onClick={handleGenerateReadme}
-            disabled={!directory || isGenerating}
+            disabled={!inputValue || isGenerating}
             fullWidth
-            style={{ marginTop: "10px" }}
           >
             {isGenerating ? "Generating..." : "Generate README"}
           </Button>
@@ -55,18 +72,11 @@ export default function ReadmeGenerator() {
       </Card>
 
       {readmeContent && (
-        <Card style={{ marginTop: "20px", padding: "10px", boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)" }}>
-          <CardContent style={{ position: "relative" }}>
-            <TextField
-              fullWidth
-              multiline
-              rows={10}
-              value={readmeContent}
-              InputProps={{ readOnly: true }}
-              style={{ backgroundColor: "#f5f5f5" }}
-            />
+        <Card style={{ marginTop: "20px", position: "relative" }}>
+          <CardContent>
+            <TextField fullWidth multiline rows={10} value={readmeContent} InputProps={{ readOnly: true }} />
             <IconButton
-              style={{ position: "absolute", top: 10, right: 10, color: "#1976d2" }}
+              style={{ position: "absolute", top: 10, right: 10 }}
               onClick={handleCopy}
             >
               <ContentCopyIcon />
@@ -74,12 +84,12 @@ export default function ReadmeGenerator() {
           </CardContent>
         </Card>
       )}
-
-      <Snackbar open={copySuccess} autoHideDuration={2000} onClose={() => setCopySuccess(false)}>
-        <Alert onClose={() => setCopySuccess(false)} severity="success" sx={{ width: '100%' }}>
-          Copied!
-        </Alert>
-      </Snackbar>
+      <Snackbar
+        open={copySuccess}
+        autoHideDuration={2000}
+        onClose={() => setCopySuccess(false)}
+        message="Copied!"
+      />
     </div>
   );
 }
